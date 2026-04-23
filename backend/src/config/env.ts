@@ -37,4 +37,9 @@ export const env = {
     SMTP_USER: process.env.SMTP_USER || "",
     SMTP_PASS: process.env.SMTP_PASS || "",
     EMAIL_FROM: process.env.EMAIL_FROM || "noreply@taskflow.local",
+
+    //redis
+    REDIS_HOST: process.env.REDIS_HOST || "localhost",
+    REDIS_PORT: parseInt(process.env.REDIS_PORT || "6379", 10),
+    REDIS_PASSWORD: process.env.REDIS_PASSWORD || "",
 };
