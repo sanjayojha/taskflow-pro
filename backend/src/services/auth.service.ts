@@ -5,10 +5,11 @@ import { hashToken } from "../utils/tokenHash";
 import { LoginInput, RegisterInput } from "../schemas/auth.schema";
 import { AppError } from "../middlewares/errorHandler";
 import { comparePassword, hashPassword } from "../utils/password";
-import { sendMail } from "../utils/mailer";
-import { resetpasswordTemplate, verifyEmailTemplate } from "../utils/emailTemplates";
+//import { sendMail } from "../utils/mailer"; // removed due to queue
+//import { resetpasswordTemplate, verifyEmailTemplate } from "../utils/emailTemplates"; // removed because of queue and worker
 import { logger } from "../utils/logger";
 import { Op } from "sequelize";
+import { emailQueue } from "../queues/emailQueue";
 // --types---
 export interface AuthTokens {
     accessToken: string;
@@ -92,11 +93,20 @@ export const register = async (input: RegisterInput): Promise<{ message: string 
         emailVerifyExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24hrs
     });
 
-    await sendMail({
+    await emailQueue.add("verify-email", {
+        type: "VERIFY_EMAIL",
         to: user.email,
-        subject: "Verify your TaskFlow Pro email",
-        html: verifyEmailTemplate(user.name, verifyToken),
+        name: user.name,
+        token: verifyToken,
     });
+
+    //Removed due to queue and worker
+
+    // await sendMail({
+    //     to: user.email,
+    //     subject: "Verify your TaskFlow Pro email",
+    //     html: verifyEmailTemplate(user.name, verifyToken),
+    // });
 
     logger.info(`New user registered: ${user.email}`);
 
@@ -202,11 +212,20 @@ export const forgotPassword = async (email: string): Promise<void> => {
         passwordResetExpires: new Date(Date.now() + 60 * 60 * 1000), // 1hr
     });
 
-    await sendMail({
+    await emailQueue.add("forget-password", {
+        type: "RESET_PASSWORD",
         to: user.email,
-        subject: "Reset your TaskFlow Pro password",
-        html: resetpasswordTemplate(user.name, resetToken),
+        name: user.name,
+        token: resetToken,
     });
+
+    // removed due to queue and worker
+
+    // await sendMail({
+    //     to: user.email,
+    //     subject: "Reset your TaskFlow Pro password",
+    //     html: resetpasswordTemplate(user.name, resetToken),
+    // });
 };
 
 export const resetPassword = async (token: string, newPassword: string): Promise<void> => {
