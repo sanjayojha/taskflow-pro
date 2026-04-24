@@ -12,7 +12,7 @@ const bootstrap = async (): Promise<void> => {
     // 2. Start background workers
     startEmailWorker();
 
-    // // 3. Start HTTP server
+    // 3. Start HTTP server
     app.listen(env.PORT, () => {
         logger.info(`Server running on http://localhost:${env.PORT}`);
         logger.info(`Enviornment: ${env.NODE_ENV}`);

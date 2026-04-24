@@ -4,7 +4,7 @@ import { Job, Worker } from "bullmq";
 import { sendMail } from "../utils/mailer";
 import { inviteEmailTemplate, resetpasswordTemplate, verifyEmailTemplate } from "../utils/emailTemplates";
 import { createRedisConnection } from "../config/redis";
-import { EMAIL_QUEUE_NAME } from "@/queues/emailQueue";
+import { EMAIL_QUEUE_NAME } from "../queues/emailQueue";
 
 const processEmailJob = async (job: Job<EmailJobData>): Promise<void> => {
     const { data } = job;

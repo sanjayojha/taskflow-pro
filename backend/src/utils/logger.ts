@@ -1,4 +1,5 @@
-const isDev = process.env.NODE_ENV === "development";
+import { env } from "../config/env";
+const isDev = env.NODE_ENV === "development";
 
 export const logger = {
     info: (msg: string, ...args: unknown[]) => {
