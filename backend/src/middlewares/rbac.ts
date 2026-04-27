@@ -17,17 +17,6 @@ const PROJECT_ROLE_HIERARCHY: Record<ProjectMemberRole, number> = {
     [ProjectMemberRole.VIEWER]: 1,
 };
 
-declare global {
-    namespace Express {
-        interface Request {
-            orgMember?: OrgMember;
-            projectMember?: ProjectMember;
-            org?: Organization;
-            project?: Project;
-        }
-    }
-}
-
 // --- Org RBAC -----
 
 export const requireOrgRole = (minimumRole: OrgMemberRole) => {
