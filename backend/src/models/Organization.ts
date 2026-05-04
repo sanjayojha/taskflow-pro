@@ -1,5 +1,6 @@
 import { BelongsTo, Column, DataType, Default, ForeignKey, Table, Unique } from "sequelize-typescript";
 import { BaseModel } from "./BaseModel";
+import { NonAttribute, CreationOptional } from "sequelize";
 import { User } from "./User";
 
 export enum OrgPlan {
@@ -10,20 +11,20 @@ export enum OrgPlan {
 @Table({ tableName: "organizations", underscored: true })
 export class Organization extends BaseModel<Organization> {
     @Column({ type: DataType.STRING(100), allowNull: false })
-    name!: string;
+    declare name: string;
 
     @Unique
     @Column({ type: DataType.STRING(100), allowNull: false })
-    slug!: string;
+    declare slug: string;
 
     @ForeignKey(() => User)
     @Column({ type: DataType.UUID, allowNull: false, field: "owner_id" })
-    ownerId!: string;
-
-    @BelongsTo(() => User, "owner_id")
-    owner!: User;
+    declare ownerId: string;
 
     @Default(OrgPlan.FREE)
     @Column({ type: DataType.ENUM(...Object.values(OrgPlan)), allowNull: false })
-    plan!: OrgPlan;
+    declare plan: CreationOptional<OrgPlan>;
+
+    @BelongsTo(() => User, "owner_id")
+    declare owner: NonAttribute<User>;
 }
