@@ -33,5 +33,5 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
 };
 
 export const down = async (queryInterface: QueryInterface): Promise<void> => {
-    await queryInterface.dropTable("projects");
+    await queryInterface.dropTable("projects", {});
 };

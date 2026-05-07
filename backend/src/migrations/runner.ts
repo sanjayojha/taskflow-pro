@@ -26,14 +26,55 @@ export const migrator = new Umzug({
 
 // Run when called directly: ts-node src/migrations/runner.ts
 if (require.main === module) {
-    migrator
-        .up()
-        .then(() => {
-            console.log("All migrations ran successfully!");
-            process.exit(0);
-        })
+    const [command, flag, value] = process.argv.slice(2);
+
+    const run = async () => {
+        switch (command) {
+            case "up": {
+                await migrator.up();
+                console.log("All pending migrations ran successfully!");
+                break;
+            }
+
+            case "down": {
+                if (flag === "--to" && value) {
+                    await migrator.down({ to: value });
+                    console.log(`Rolled back to: ${value}`);
+                } else {
+                    await migrator.down();
+                    console.log("Rolled back last migration");
+                }
+                break;
+            }
+
+            case "status": {
+                const executed = await migrator.executed();
+                const pending = await migrator.pending();
+
+                console.log("\n-- Executed ---");
+                executed.forEach((m) => console.log(" ✅ ", m.name));
+
+                console.log("\n-- Pending ---");
+                if (pending.length === 0) {
+                    console.log("  (none)");
+                } else {
+                    pending.forEach((m) => console.log(" ⏳ ", m.name));
+                }
+                console.log("");
+                break;
+            }
+
+            default: {
+                await migrator.up();
+                console.log("All pending migrations ran successfully!");
+            }
+        }
+    };
+
+    run()
+        .then(() => process.exit(0))
         .catch((err) => {
-            console.error("Migration failed:", err);
+            console.error("Migration error:", err);
             process.exit(1);
         });
 }

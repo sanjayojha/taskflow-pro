@@ -1,7 +1,7 @@
 import { DataTypes, QueryInterface } from "sequelize";
 
 export const up = async (queryInterface: QueryInterface): Promise<void> => {
-    await queryInterface.createTable("org-members", {
+    await queryInterface.createTable("org_members", {
         id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true, allowNull: false },
         org_id: {
             type: DataTypes.UUID,
@@ -35,5 +35,5 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
 };
 
 export const down = async (queryInterface: QueryInterface): Promise<void> => {
-    await queryInterface.dropTable("org_members");
+    await queryInterface.dropTable("org_members", {});
 };
