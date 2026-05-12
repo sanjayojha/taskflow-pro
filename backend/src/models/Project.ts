@@ -1,6 +1,7 @@
 import { Table, Column, DataType, ForeignKey, BelongsTo, HasMany, Default } from "sequelize-typescript";
 import { BaseModel } from "./BaseModel";
 import { Organization } from "./Organization";
+import { NonAttribute, CreationOptional } from "sequelize";
 import { User } from "./User";
 
 export enum ProjectStatus {
@@ -13,28 +14,28 @@ export enum ProjectStatus {
 export class Project extends BaseModel<Project> {
     @ForeignKey(() => Organization)
     @Column({ type: DataType.UUID, allowNull: false, field: "org_id" })
-    orgId!: string;
+    declare orgId: string;
 
     @Column({ type: DataType.STRING(150), allowNull: false })
-    name!: string;
+    declare name: string;
 
     @Column({ type: DataType.TEXT, allowNull: true })
-    description?: string;
+    declare description?: string;
 
     @Default(ProjectStatus.ACTIVE)
     @Column({ type: DataType.ENUM(...Object.values(ProjectStatus)), allowNull: false })
-    status!: ProjectStatus;
+    declare status: ProjectStatus;
 
     @ForeignKey(() => User)
     @Column({ type: DataType.UUID, allowNull: false, field: "created_by" })
-    createdBy!: string;
+    declare createdBy: string;
 
     @Column({ type: DataType.DATE, allowNull: true })
-    deadline?: Date;
+    declare deadline?: Date;
 
     @BelongsTo(() => Organization, "org_id")
-    organization!: Organization;
+    declare organization: NonAttribute<Organization>;
 
     @BelongsTo(() => User, "created_by")
-    creator!: User;
+    declare creator: NonAttribute<User>;
 }
