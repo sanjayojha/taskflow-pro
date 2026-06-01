@@ -2,6 +2,7 @@ import { Table, Column, DataType, ForeignKey, BelongsTo, HasMany, Default } from
 import { BaseModel } from "./BaseModel";
 import { Project } from "./Project";
 import { User } from "./User";
+import { NonAttribute, CreationOptional } from "sequelize";
 
 export enum TaskStatus {
     BACKLOG = "backlog",
@@ -39,18 +40,18 @@ export class Task extends BaseModel<Task> {
 
     @ForeignKey(() => User)
     @Column({ type: DataType.UUID, allowNull: true, field: "assignee_id" })
-    assigneeId?: string;
+    assigneeId?: string | null;
 
     @Column({ type: DataType.DATE, allowNull: true, field: "due_date" })
-    dueDate?: Date;
+    dueDate?: Date | null;
 
     @Default(0)
     @Column({ type: DataType.INTEGER, allowNull: false })
-    position!: number;
+    position!: CreationOptional<number>;
 
     @BelongsTo(() => Project, "project_id")
-    project!: Project;
+    project!: NonAttribute<Project>;
 
     @BelongsTo(() => User, "assignee_id")
-    assignee!: User;
+    assignee!: NonAttribute<User>;
 }

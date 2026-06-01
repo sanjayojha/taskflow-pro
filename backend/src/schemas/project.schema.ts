@@ -1,3 +1,4 @@
+import { ProjectMemberRole } from "../models/ProjectMember";
 import { z } from "zod";
 
 export const createProjectSchema = z.object({
@@ -15,11 +16,11 @@ export const updateProjectSchema = z.object({
 
 export const addProjectMemberSchema = z.object({
     userId: z.uuid({ error: "Invalid user ID" }),
-    role: z.enum(["manager", "member", "viewer"]).optional().default("member"),
+    role: z.enum(ProjectMemberRole).optional().default(ProjectMemberRole.MEMBER),
 });
 
 export const updateProjectMemberRoleSchema = z.object({
-    role: z.enum(["manager", "member", "viewer"], {
+    role: z.enum(ProjectMemberRole, {
         error: "Role must be manager, member or viewer",
     }),
 });
