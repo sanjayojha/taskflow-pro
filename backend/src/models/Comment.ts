@@ -2,6 +2,7 @@ import { Table, Column, DataType, ForeignKey, BelongsTo } from "sequelize-typesc
 import { BaseModel } from "./BaseModel";
 import { Task } from "./Task";
 import { User } from "./User";
+import { NonAttribute, CreationOptional } from "sequelize";
 
 @Table({ tableName: "comments", underscored: true })
 export class Comment extends BaseModel<Comment> {
@@ -17,8 +18,8 @@ export class Comment extends BaseModel<Comment> {
     body!: string;
 
     @BelongsTo(() => Task, "task_id")
-    task!: Task;
+    task!: NonAttribute<Task>;
 
     @BelongsTo(() => User, "user_id")
-    user!: User;
+    user!: NonAttribute<User>;
 }

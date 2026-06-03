@@ -4,7 +4,7 @@ import { Op } from "sequelize";
 import { Comment } from "../models/Comment";
 import { Attachment } from "../models/Attachment";
 import { paginate } from "../utils/pagination";
-import { CreateTaskInput, UpdateTaskInput, UpdateTaskPositionInput } from "../schemas/task.schema";
+import { CreateCommentInput, CreateTaskInput, UpdateCommentInput, UpdateTaskInput, UpdateTaskPositionInput } from "../schemas/task.schema";
 import { ProjectMember } from "../models/ProjectMember";
 import { AppError } from "../middlewares/errorHandler";
 
@@ -327,5 +327,96 @@ export const deleteTask = async (taskId: string, projectId: string) => {
 };
 
 // Get task comments
-export const getTaskComments = async (taskId: string) => {};
-//export const | = async () => {}
+export const getTaskComments = async (taskId: string) => {
+    const task = await Task.findByPk(taskId);
+    if (!task) {
+        throw new AppError("Task not found", 404);
+    }
+
+    const comments = await Comment.findAll({
+        where: { taskId },
+        include: [{ model: User, attributes: ["id", "name", "avatarUrl"] }],
+        order: [["createdAt", "ASC"]],
+    });
+
+    return comments;
+};
+
+// create comment
+export const createComment = async (taskId: string, userId: string, input: CreateCommentInput) => {
+    const task = await Task.findByPk(taskId);
+    if (!task) {
+        throw new AppError("Task not found", 404);
+    }
+
+    const comment = await Comment.create({
+        taskId,
+        userId,
+        body: input.body,
+    });
+
+    return comment.reload({
+        include: [{ model: User, attributes: ["id", "name", "avatarUrl"] }],
+    });
+};
+
+// update comment
+export const updateComment = async (commentId: string, userId: string, input: UpdateCommentInput) => {
+    const comment = await Comment.findByPk(commentId);
+    if (!comment) {
+        throw new AppError("Comment not found", 404);
+    }
+
+    // Only the author can edit their comment
+    if (comment.userId !== userId) {
+        throw new AppError("You can only edit your own comments", 403);
+    }
+
+    await comment.update({ body: input.body });
+
+    return comment.reload({
+        include: [{ model: User, attributes: ["id", "name", "avatarUrl"] }],
+    });
+};
+
+// delete comment
+export const deleteComment = async (commentId: string, userId: string) => {
+    const comment = await Comment.findByPk(commentId);
+    if (!comment) {
+        throw new AppError("Comment not found", 404);
+    }
+
+    if (comment.userId !== userId) {
+        throw new AppError("You can only delete your own comments", 403);
+    }
+
+    await comment.destroy();
+};
+
+// --- Attachments (placeholder — S3 wired in Phase 5)
+export const getTaskAttachments = async (taskId: string) => {
+    const task = await Task.findByPk(taskId);
+    if (!task) {
+        throw new AppError("Task not found", 404);
+    }
+
+    return Attachment.findAll({
+        where: { taskId },
+        include: [{ model: User, attributes: ["id", "name"] }],
+        order: [["createdAt", "DESC"]],
+    });
+};
+
+export const deleteAttachment = async (attachmentId: string, userId: string) => {
+    const attachment = await Attachment.findByPk(attachmentId);
+    if (!attachment) {
+        throw new AppError("Attachment not found", 404);
+    }
+
+    if (attachment.userId !== userId) {
+        throw new AppError("You can only delete your own attachments", 403);
+    }
+
+    // S3 deletion wired in Phase 5 — for now just remove the DB record
+    await attachment.destroy();
+};
