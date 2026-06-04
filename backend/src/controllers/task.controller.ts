@@ -66,12 +66,59 @@ export const deleteTask = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-// -- Comments
+// --- Comments
 
-// export const | = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-//     try {
-//         //
-//     } catch (err) {
-//         next(err);
-//     }
-// };
+export const getTaskComments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const comments = await taskService.getTaskComments(req.params.taskId as string);
+        sendSuccess(res, { comments });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const createComment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const comment = await taskService.createComment(req.params.taskId as string, req.user!.userId, req.body);
+        sendSuccess(res, { comment }, "Comment added", 201);
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const updateComment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const comment = await taskService.updateComment(req.params.commentId as string, req.user!.userId, req.body);
+        sendSuccess(res, { comment }, "Comment updated");
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const deleteComment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        await taskService.deleteComment(req.params.commentId as string, req.user!.userId);
+        sendSuccess(res, null, "Comment deleted");
+    } catch (err) {
+        next(err);
+    }
+};
+
+// --- Attachments
+export const getTaskAttachments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const attachments = await taskService.getTaskAttachments(req.params.taskId as string);
+        sendSuccess(res, { attachments });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const deleteAttachment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        await taskService.deleteAttachment(req.params.attachmentId as string, req.user!.userId);
+        sendSuccess(res, null, "Attachment deleted");
+    } catch (err) {
+        next(err);
+    }
+};

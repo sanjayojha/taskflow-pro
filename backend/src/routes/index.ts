@@ -4,6 +4,8 @@ import authRoutes from "./auth.routes";
 import orgRoutes from "./org.routes";
 import projectRoutes, { orgProjectRouter } from "./project.routes";
 
+import taskRoutes, { projectTaskRouter } from "./task.routes";
+
 const router = Router();
 
 router.use("/auth", authRoutes);
@@ -13,5 +15,11 @@ router.use("/orgs", orgRoutes);
 router.use("/orgs/:orgId/projects", orgProjectRouter);
 // Standalone: GET /projects/:projectId
 router.use("/projects", projectRoutes);
+
+// Project-scoped tasks: /projects/:projectId/tasks
+router.use("/projects/:projectId/tasks", projectTaskRouter);
+
+// Standalone tasks: /tasks/:taskId
+router.use("/tasks", taskRoutes);
 
 export default router;
