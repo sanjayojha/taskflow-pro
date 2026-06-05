@@ -1,4 +1,4 @@
-import { BelongsTo, Column, DataType, Default, ForeignKey, Table, Unique } from "sequelize-typescript";
+import { BelongsTo, Column, DataType, Default, ForeignKey, Table, HasMany, Unique } from "sequelize-typescript";
 import { BaseModel } from "./BaseModel";
 import { NonAttribute, CreationOptional } from "sequelize";
 import { User } from "./User";
@@ -27,4 +27,13 @@ export class Organization extends BaseModel<Organization> {
 
     @BelongsTo(() => User, "owner_id")
     declare owner: NonAttribute<User>;
+
+    // -- Associations
+    @HasMany(() => OrgMember, "org_id")
+    declare members: NonAttribute<OrgMember[]>;
+
+    @HasMany(() => Project, "org_id")
+    declare projects: NonAttribute<Project[]>;
 }
+import { OrgMember } from "./OrgMember";
+import { Project } from "./Project";

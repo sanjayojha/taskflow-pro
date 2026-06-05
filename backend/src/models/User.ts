@@ -1,4 +1,4 @@
-import { AllowNull, Column, DataType, Default, Table, Unique } from "sequelize-typescript";
+import { AllowNull, Column, DataType, Default, Table, HasMany, Unique } from "sequelize-typescript";
 import { NonAttribute, CreationOptional } from "sequelize";
 import { BaseModel } from "./BaseModel";
 
@@ -45,4 +45,33 @@ export class User extends BaseModel<User> {
     @AllowNull(true)
     @Column({ type: DataType.DATE, field: "password_reset_expires" })
     passwordResetExpires?: Date | null;
+
+    // -- Associations
+    @HasMany(() => OrgMember, "user_id")
+    declare orgMemberships: NonAttribute<OrgMember[]>;
+
+    @HasMany(() => ProjectMember, "user_id")
+    declare projectMemberships: NonAttribute<ProjectMember[]>;
+
+    @HasMany(() => RefreshToken, "user_id")
+    declare refreshTokens: NonAttribute<RefreshToken[]>;
+
+    @HasMany(() => Task, "assignee_id")
+    declare assignedTasks: NonAttribute<Task[]>;
+
+    @HasMany(() => Comment, "user_id")
+    declare comments: NonAttribute<Comment[]>;
+
+    @HasMany(() => Notification, "user_id")
+    declare notifications: NonAttribute<Notification[]>;
+
+    @HasMany(() => ActivityLog, "user_id")
+    declare activityLogs: NonAttribute<ActivityLog[]>;
 }
+import { OrgMember } from "./OrgMember";
+import { ProjectMember } from "./ProjectMember";
+import { RefreshToken } from "./RefreshToken";
+import { Task } from "./Task";
+import { Comment } from "./Comment";
+import { Notification } from "./Notification";
+import { ActivityLog } from "./ActivityLog";

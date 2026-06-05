@@ -54,4 +54,13 @@ export class Task extends BaseModel<Task> {
 
     @BelongsTo(() => User, "assignee_id")
     assignee!: NonAttribute<User>;
+
+    // -- Associations
+    @HasMany(() => Comment, "task_id")
+    declare comments: NonAttribute<Comment[]>;
+
+    @HasMany(() => Attachment, "task_id")
+    declare attachments: NonAttribute<Attachment[]>;
 }
+import { Comment } from "./Comment";
+import { Attachment } from "./Attachment";

@@ -93,7 +93,7 @@ export const getProjectTasks = async (
         attachmentCount: parseInt(attachmentCounts.find((a) => a.taskId === task.id)?.count || "0"),
     }));
 
-    paginate(taskWithCounts, count, { page, limit, offset });
+    return paginate(taskWithCounts, count, { page, limit, offset });
 };
 
 // -- Create Task --

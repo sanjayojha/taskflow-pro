@@ -38,4 +38,14 @@ export class Project extends BaseModel<Project> {
 
     @BelongsTo(() => User, "created_by")
     declare creator: NonAttribute<User>;
+
+    @HasMany(() => ProjectMember, "project_id")
+    declare members: NonAttribute<ProjectMember[]>;
+
+    @HasMany(() => Task, "project_id")
+    declare tasks: NonAttribute<Task[]>;
 }
+
+// Avoid circular import — import after class declaration
+import { ProjectMember } from "./ProjectMember";
+import { Task } from "./Task";

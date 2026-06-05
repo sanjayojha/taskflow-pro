@@ -92,7 +92,7 @@ export const createProject = async (orgId: string, userId: string, input: Create
         role: ProjectMemberRole.MANAGER,
     });
 
-    return Project;
+    return project;
 };
 
 // -- Get single project--
@@ -115,15 +115,15 @@ export const getProjectById = async (projectId: string, userId: string) => {
         throw new AppError("Project not found", 404);
     }
 
-    const taskCounts = Task.findAll({
+    const taskCounts = (await Task.findAll({
         where: { projectId },
         attributes: ["status", [Task.sequelize!.fn("COUNT", Task.sequelize!.col("id")), "count"]],
         group: ["status"],
         raw: true,
-    }) as unknown as Array<{ status: string; count: string }>;
+    })) as unknown as Array<{ status: string; count: string }>;
 
     const taskSummary = {
-        total: taskCounts.reduce((sum, c) => parseInt(c.count || "0"), 0),
+        total: taskCounts.reduce((sum, c) => sum + parseInt(c.count || "0"), 0),
         backlog: parseInt(taskCounts.find((c) => c.status === "backlog")?.count || "0"),
         inProgress: parseInt(taskCounts.find((c) => c.status === "in_progress")?.count || "0"),
         review: parseInt(taskCounts.find((c) => c.status === "review")?.count || "0"),

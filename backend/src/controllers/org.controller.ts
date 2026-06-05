@@ -32,7 +32,7 @@ export const getOrg = async (req: Request, res: Response, next: NextFunction): P
 
 export const updateOrg = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const org = await orgService.updateOrg(req.user!.userId, req.body);
+        const org = await orgService.updateOrg(req.params.orgId as string, req.body);
         sendSuccess(res, { org }, "Organization updated successfully");
     } catch (err) {
         next(err);
