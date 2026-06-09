@@ -7,6 +7,8 @@ import { paginate } from "../utils/pagination";
 import { CreateCommentInput, CreateTaskInput, UpdateCommentInput, UpdateTaskInput, UpdateTaskPositionInput } from "../schemas/task.schema";
 import { ProjectMember } from "../models/ProjectMember";
 import { AppError } from "../middlewares/errorHandler";
+import { CacheKeys, CacheTTL } from "../utils/cacheKeys";
+import { cache } from "../utils/cache";
 
 // -- List tasks --
 export const getProjectTasks = async (
@@ -22,6 +24,15 @@ export const getProjectTasks = async (
         sortOrder?: string;
     },
 ) => {
+    const isDefaultQuery = !query.status && !query.priority && !query.assigneeId && !query.search && (query.page || 1) === 1 && (query.limit || 50) === 50 && !query.sortBy;
+
+    const cacheKey = CacheKeys.projectTasks(projectId);
+
+    if (isDefaultQuery) {
+        const cached = await cache.get(cacheKey);
+        if (cached) return cached;
+    }
+
     const page = Math.max(1, query.page || 1);
     const limit = Math.min(100, query.limit || 50);
     const offset = (page - 1) * limit;
@@ -93,7 +104,13 @@ export const getProjectTasks = async (
         attachmentCount: parseInt(attachmentCounts.find((a) => a.taskId === task.id)?.count || "0"),
     }));
 
-    return paginate(taskWithCounts, count, { page, limit, offset });
+    const result = paginate(taskWithCounts, count, { page, limit, offset });
+
+    if (isDefaultQuery) {
+        await cache.set(cacheKey, result, CacheTTL.SHORT);
+    }
+
+    return result;
 };
 
 // -- Create Task --
@@ -125,6 +142,8 @@ export const createTask = async (projectId: string, creatorId: string, input: Cr
         position,
     });
 
+    await cache.del(CacheKeys.projectTasks(projectId));
+
     return task.reload({
         include: [
             {
@@ -139,6 +158,12 @@ export const createTask = async (projectId: string, creatorId: string, input: Cr
 
 // get single task
 export const getTaskById = async (taskId: string) => {
+    const cacheKey = CacheKeys.task(taskId);
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
     const task = await Task.findByPk(taskId, {
         include: [
             {
@@ -165,7 +190,7 @@ export const getTaskById = async (taskId: string) => {
     if (!task) {
         throw new AppError("Task not found", 404);
     }
-
+    await cache.set(cacheKey, task, CacheTTL.SHORT);
     return task;
 };
 
@@ -194,6 +219,8 @@ export const updateTask = async (taskId: string, projectId: string, input: Updat
         ...(input.assigneeId !== undefined && { assigneeId: input.assigneeId }),
         ...(input.dueDate !== undefined && { dueDate: input.dueDate }),
     });
+
+    await cache.del(CacheKeys.task(taskId), CacheKeys.projectTasks(task.projectId));
 
     return task.reload({
         include: [
@@ -289,6 +316,7 @@ export const updateTaskPosition = async (taskId: string, projectId: string, inpu
         // Update the task itself
         await task.update({ status: newStatus, position: newPosition }, { transaction });
         await transaction.commit();
+        await cache.del(CacheKeys.task(taskId), CacheKeys.projectTasks(projectId));
     } catch (err) {
         await transaction.rollback();
         throw err;
@@ -320,6 +348,7 @@ export const deleteTask = async (taskId: string, projectId: string) => {
         );
         await task.destroy({ transaction });
         await transaction.commit();
+        await cache.del(CacheKeys.task(taskId), CacheKeys.projectTasks(projectId));
     } catch (err) {
         await transaction.rollback();
         throw err;
@@ -333,12 +362,19 @@ export const getTaskComments = async (taskId: string) => {
         throw new AppError("Task not found", 404);
     }
 
+    const cacheKey = CacheKeys.taskComments(taskId);
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
     const comments = await Comment.findAll({
         where: { taskId },
         include: [{ model: User, attributes: ["id", "name", "avatarUrl"] }],
         order: [["createdAt", "ASC"]],
     });
 
+    await cache.set(cacheKey, comments, CacheTTL.SHORT);
     return comments;
 };
 
@@ -354,6 +390,8 @@ export const createComment = async (taskId: string, userId: string, input: Creat
         userId,
         body: input.body,
     });
+
+    await cache.del(CacheKeys.task(taskId), CacheKeys.taskComments(taskId));
 
     return comment.reload({
         include: [{ model: User, attributes: ["id", "name", "avatarUrl"] }],
@@ -374,6 +412,8 @@ export const updateComment = async (commentId: string, userId: string, input: Up
 
     await comment.update({ body: input.body });
 
+    await cache.del(CacheKeys.task(comment.taskId), CacheKeys.taskComments(comment.taskId));
+
     return comment.reload({
         include: [{ model: User, attributes: ["id", "name", "avatarUrl"] }],
     });
@@ -391,6 +431,7 @@ export const deleteComment = async (commentId: string, userId: string) => {
     }
 
     await comment.destroy();
+    await cache.del(CacheKeys.task(comment.taskId), CacheKeys.taskComments(comment.taskId));
 };
 
 // --- Attachments (placeholder — S3 wired in Phase 5)
@@ -400,11 +441,20 @@ export const getTaskAttachments = async (taskId: string) => {
         throw new AppError("Task not found", 404);
     }
 
-    return Attachment.findAll({
+    const cacheKey = CacheKeys.taskAttachments(taskId);
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
+    const attachments = await Attachment.findAll({
         where: { taskId },
         include: [{ model: User, attributes: ["id", "name"] }],
         order: [["createdAt", "DESC"]],
     });
+
+    await cache.set(cacheKey, attachments, CacheTTL.SHORT);
+    return attachments;
 };
 
 export const deleteAttachment = async (attachmentId: string, userId: string) => {
@@ -419,4 +469,6 @@ export const deleteAttachment = async (attachmentId: string, userId: string) => 
 
     // S3 deletion wired in Phase 5 — for now just remove the DB record
     await attachment.destroy();
+
+    await cache.del(CacheKeys.taskAttachments(attachment.taskId), CacheKeys.task(attachment.taskId));
 };

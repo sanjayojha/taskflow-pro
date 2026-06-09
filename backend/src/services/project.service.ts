@@ -7,6 +7,8 @@ import { OrgMember } from "../models/OrgMember";
 import { paginate } from "../utils/pagination";
 import { AddProjectMemberInput, CreateProjectInput, UpdateProjectInput, UpdateProjectMemberRoleInput } from "../schemas/project.schema";
 import { AppError } from "../middlewares/errorHandler";
+import { CacheKeys, CacheTTL } from "../utils/cacheKeys";
+import { cache } from "../utils/cache";
 
 // -- List projects in org --
 export const getOrgProjects = async (
@@ -19,6 +21,17 @@ export const getOrgProjects = async (
         search?: string;
     },
 ) => {
+    // Only cache the default unfiltered first page
+    // Filtered/searched queries bypass cache, they're too varied to cache effectively
+    const isDefaultQuery = !query.status && !query.search && (query.page || 1) === 1 && (query.limit || 20) === 20;
+    const cacheKey = CacheKeys.orgProjects(orgId);
+    if (isDefaultQuery) {
+        const cached = cache.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+    }
+
     const page = Math.max(1, query.page || 1);
     const limit = Math.min(100, query.limit || 20);
     const offset = (page - 1) * limit;
@@ -72,7 +85,11 @@ export const getOrgProjects = async (
         return { ...project.toJSON(), taskSummary };
     });
 
-    return paginate(projectsWithCounts, count, { page, limit, offset });
+    const result = paginate(projectsWithCounts, count, { page, limit, offset });
+    if (isDefaultQuery) {
+        cache.set(cacheKey, result, CacheTTL.MEDIUM);
+    }
+    return result;
 };
 
 // -- Create project --
@@ -92,11 +109,23 @@ export const createProject = async (orgId: string, userId: string, input: Create
         role: ProjectMemberRole.MANAGER,
     });
 
+    await cache.del(CacheKeys.orgProjects(orgId));
     return project;
 };
 
 // -- Get single project--
 export const getProjectById = async (projectId: string, userId: string) => {
+    const cacheKey = CacheKeys.project(projectId);
+    const cached = await cache.get(cacheKey);
+
+    if (cached) {
+        // myRole is user-specific, always fetch fresh and attach
+        const membership = await ProjectMember.findOne({
+            where: { projectId, userId },
+        });
+        return { ...(cached as object), myRole: membership?.role || null };
+    }
+
     const project = await Project.findByPk(projectId, {
         include: [
             {
@@ -134,11 +163,17 @@ export const getProjectById = async (projectId: string, userId: string) => {
         where: { projectId, userId },
     });
 
-    return {
+    const result = {
         ...project.toJSON(),
         taskSummary,
         myRole: membershipRole?.role || null,
     };
+
+    // Cache without myRole, that's user-specific
+    const { myRole, ...cacheable } = result;
+    await cache.set(cacheKey, cacheable, CacheTTL.MEDIUM);
+
+    return result;
 };
 
 // -- Update project --
@@ -156,6 +191,8 @@ export const updateProject = async (projectId: string, input: UpdateProjectInput
         ...(input.deadline !== undefined && { deadline: input.deadline }),
     });
 
+    await cache.del(CacheKeys.project(projectId), CacheKeys.orgProjects(project.orgId));
+
     return project.reload();
 };
 
@@ -167,10 +204,17 @@ export const deleteProject = async (projectId: string) => {
         throw new AppError("Project not found", 404);
     }
     await project.destroy();
+    await cache.del(CacheKeys.project(projectId), CacheKeys.orgProjects(project.orgId));
 };
 
 // -- List project members --
 export const getProjectMembers = async (projectId: string) => {
+    const cacheKey = CacheKeys.projectMembers(projectId);
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
     const members = await ProjectMember.findAll({
         where: { projectId },
         include: [
@@ -181,6 +225,8 @@ export const getProjectMembers = async (projectId: string) => {
         ],
         order: [["createdAt", "ASC"]],
     });
+
+    await cache.set(cacheKey, members, CacheTTL.MEDIUM);
 
     return members;
 };
@@ -212,6 +258,8 @@ export const addProjectMember = async (projectId: string, orgId: string, input: 
         role: input.role as ProjectMemberRole,
     });
 
+    await cache.del(CacheKeys.projectMembers(projectId), CacheKeys.project(projectId));
+
     return member.reload({
         include: [{ model: User, attributes: ["id", "name", "email", "avatarUrl"] }],
     });
@@ -232,6 +280,8 @@ export const updateProjectMemberRole = async (projectId: string, targetUserId: s
     }
 
     await targetMember.update({ role: input.role as ProjectMemberRole });
+
+    await cache.del(CacheKeys.projectMembers(projectId), CacheKeys.project(projectId));
 
     return targetMember.reload({
         include: [{ model: User, attributes: ["id", "name", "email", "avatarUrl"] }],
@@ -269,5 +319,6 @@ export const removeProjectMember = async (projectId: string, targetUserId: strin
         }
     }
 
-    targetMember.destroy();
+    await targetMember.destroy();
+    await cache.del(CacheKeys.projectMembers(projectId), CacheKeys.project(projectId));
 };

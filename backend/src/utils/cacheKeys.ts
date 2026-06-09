@@ -19,4 +19,8 @@ export const CacheKeys = {
     // Task
     task: (taskId: string) => `task:${taskId}`,
     projectTasks: (projectId: string) => `project:${projectId}:tasks`,
+
+    // Task Comment and attachment
+    taskComments: (taskId: string) => `task:${taskId}:comments`,
+    taskAttachments: (taskId: string) => `task:${taskId}:attachments`,
 };
