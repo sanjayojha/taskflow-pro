@@ -9,8 +9,16 @@ import { Op } from "sequelize";
 import { paginate } from "../utils/pagination";
 import { emailQueue } from "../queues/emailQueue";
 
+import { cache } from "../utils/cache";
+import { CacheKeys, CacheTTL } from "../utils/cacheKeys";
+
 // -- List user's org ---
 export const getUserOrgs = async (userId: string) => {
+    const cacheKey = CacheKeys.userOrgs(userId);
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
     const memberShips = await OrgMember.findAll({
         where: { userId },
         include: [
@@ -28,10 +36,13 @@ export const getUserOrgs = async (userId: string) => {
         ],
     });
 
-    return memberShips.map((m) => ({
+    const result = memberShips.map((m) => ({
         ...m.organization.toJSON(),
         myRole: m.role,
     }));
+
+    await cache.set(cacheKey, result, CacheTTL.LONG);
+    return result;
 };
 
 // -- Create Org ---
@@ -54,11 +65,19 @@ export const createOrg = async (userId: string, input: CreateOrgInput) => {
         role: OrgMemberRole.OWNER,
     });
 
+    // Invalidate cache so next getUserOrgs fetch is fresh
+    await cache.del(CacheKeys.userOrgs(userId));
     return org;
 };
 
 // -- get single org ---
 export const getOrgById = async (orgId: string) => {
+    const cacheKey = CacheKeys.org(orgId);
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
     const org = await Organization.findByPk(orgId, {
         include: [
             {
@@ -75,7 +94,10 @@ export const getOrgById = async (orgId: string) => {
 
     const memberCount = await OrgMember.count({ where: { orgId: org.id } });
 
-    return { ...org.toJSON(), memberCount };
+    const result = { ...org.toJSON(), memberCount };
+
+    await cache.set(cacheKey, result, CacheTTL.LONG);
+    return result;
 };
 
 // -- update org ---
@@ -102,6 +124,8 @@ export const updateOrg = async (orgId: string, input: UpdateOrgInput) => {
         await org.update({ plan: input.plan });
     }
 
+    // Invalidate cache
+    await cache.del(CacheKeys.org(orgId));
     return org.reload();
 };
 
@@ -117,7 +141,9 @@ export const deleteOrg = async (orgId: string, requestingUserId: string) => {
         throw new AppError("Only the organization owner can delete it", 403);
     }
 
-    org.destroy();
+    await org.destroy();
+    // Invalidate cache
+    await cache.del(CacheKeys.org(orgId), CacheKeys.userOrgs(requestingUserId));
 };
 
 // -- list members ---
@@ -173,6 +199,12 @@ export const inviteMember = async (orgId: string, inviterId: string, input: Invi
             userId: invitee.id,
             role: input.role,
         });
+
+        // Invalidate cache
+        await cache.del(
+            CacheKeys.orgMembers(orgId),
+            CacheKeys.userOrgs(invitee.id), // use the affected userId where available
+        );
     }
 
     // invite token
@@ -210,6 +242,10 @@ export const updateMemberRole = async (orgId: string, targetUserId: string, requ
     }
 
     await targetMember.update({ role: input.role });
+
+    // Invalidate cache
+    await cache.del(CacheKeys.orgMembers(orgId), CacheKeys.userOrgs(targetUserId));
+
     return targetMember.reload({ include: { model: User, attributes: ["id", "name", "email"] } });
 };
 
@@ -239,5 +275,8 @@ export const removeMember = async (orgId: string, targetUserId: string, requesti
         throw new AppError("Member not found in this organization", 404);
     }
 
-    targetMember.destroy();
+    await targetMember.destroy();
+
+    // invalidate cache
+    await cache.del(CacheKeys.orgMembers(orgId), CacheKeys.userOrgs(targetUserId));
 };
