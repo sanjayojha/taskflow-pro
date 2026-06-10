@@ -5,6 +5,7 @@ import { validate } from "../middlewares/validate";
 import { createOrgSchema, inviteMemberSchema, updateMemberRoleSchema, updateOrgSchema } from "../schemas/org.schema";
 import { requireOrgRole } from "../middlewares/rbac";
 import { OrgMemberRole } from "../models/OrgMember";
+import { inviteLimiter } from "../config/rateLimiter";
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.delete("/:orgId", requireOrgRole(OrgMemberRole.OWNER), orgController.dele
 
 // -- member managment ---
 router.get("/:orgId/members", requireOrgRole(OrgMemberRole.MEMBER), orgController.getOrgMembers);
-router.post("/:orgId/members/invite", requireOrgRole(OrgMemberRole.ADMIN), validate(inviteMemberSchema), orgController.inviteMember);
+router.post("/:orgId/members/invite", requireOrgRole(OrgMemberRole.ADMIN), inviteLimiter, validate(inviteMemberSchema), orgController.inviteMember);
 router.patch("/:orgId/members/:userId/role", requireOrgRole(OrgMemberRole.ADMIN), validate(updateMemberRoleSchema), orgController.updateMemberRole);
 router.delete("/:orgId/members/:userId", requireOrgRole(OrgMemberRole.MEMBER), orgController.removeMember);
 

@@ -7,6 +7,7 @@ import { errorHandler } from "./middlewares/errorHandler";
 import { env } from "./config/env";
 import router from "./routes";
 import cookieParser from "cookie-parser";
+import { globalLimiter } from "./config/rateLimiter";
 
 const app: Application = express();
 
@@ -16,6 +17,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan("dev"));
+app.use(globalLimiter);
 
 app.get("/health", (_req: Request, res: Response) => {
     res.json({
