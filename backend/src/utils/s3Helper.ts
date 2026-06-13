@@ -40,7 +40,7 @@ export const deleteFromS3 = async (key: string): Promise<void> => {
 
 export const getPresignedUrl = async (
     key: string,
-    expiresInSeconds: 900, // 15 minutes
+    expiresInSeconds = 900, // 15 minutes
 ): Promise<string> => {
     const command = new GetObjectCommand({
         Bucket: env.AWS_S3_BUCKET,
