@@ -6,6 +6,8 @@ import projectRoutes, { orgProjectRouter } from "./project.routes";
 
 import taskRoutes, { projectTaskRouter } from "./task.routes";
 
+import userRoutes from "./user.routes";
+
 const router = Router();
 
 router.use("/auth", authRoutes);
@@ -21,5 +23,8 @@ router.use("/projects/:projectId/tasks", projectTaskRouter);
 
 // Standalone tasks: /tasks/:taskId
 router.use("/tasks", taskRoutes);
+
+// users and profile
+router.use("/users", userRoutes);
 
 export default router;
