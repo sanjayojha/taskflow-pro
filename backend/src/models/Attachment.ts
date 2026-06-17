@@ -3,6 +3,8 @@ import { BaseModel } from "./BaseModel";
 import { Task } from "./Task";
 import { User } from "./User";
 
+import { NonAttribute, CreationOptional } from "sequelize";
+
 @Table({ tableName: "attachments", underscored: true })
 export class Attachment extends BaseModel<Attachment> {
     @ForeignKey(() => Task)
@@ -23,8 +25,8 @@ export class Attachment extends BaseModel<Attachment> {
     size!: number;
 
     @BelongsTo(() => Task, "task_id")
-    task!: Task;
+    task!: NonAttribute<Task>;
 
     @BelongsTo(() => User, "user_id")
-    user!: User;
+    user!: NonAttribute<User>;
 }

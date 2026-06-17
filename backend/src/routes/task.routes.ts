@@ -9,6 +9,7 @@ import { createCommentSchema, createTaskSchema, updateCommentSchema, updateTaskP
 import { Request, Response, NextFunction } from "express";
 import { Task } from "../models/Task";
 import { AppError } from "../middlewares/errorHandler";
+import { handleMulterError, uploadAttachment } from "../middlewares/upload";
 
 // -- Standalone task routes (/tasks/:taskId)
 const router = Router();
@@ -52,6 +53,7 @@ router.delete("/comments/:commentId", taskController.deleteComment);
 
 // Attachments (placeholder)
 router.get("/:taskId/attachments", injectProjectId, requireProjectRole(ProjectMemberRole.VIEWER), taskController.getTaskAttachments);
+router.post("/:taskId/attachments", injectProjectId, requireProjectRole(ProjectMemberRole.MEMBER), uploadAttachment, handleMulterError, taskController.createAttachment);
 
 router.delete("/attachments/:attachmentId", taskController.deleteAttachment);
 

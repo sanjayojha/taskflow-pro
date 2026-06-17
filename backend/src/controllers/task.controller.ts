@@ -105,6 +105,20 @@ export const deleteComment = async (req: Request, res: Response, next: NextFunct
 };
 
 // --- Attachments
+export const createAttachment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        if (!req.file) {
+            res.status(404).json({ success: false, message: "No file uploaded" });
+            return;
+        }
+
+        const attachment = await taskService.createAttachment(req.params.taskId as string, req.user!.userId as string, req.file);
+        sendSuccess(res, { attachment }, "Attachment uploaded successfully", 201);
+    } catch (err) {
+        next(err);
+    }
+};
+
 export const getTaskAttachments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const attachments = await taskService.getTaskAttachments(req.params.taskId as string);

@@ -9,6 +9,8 @@ import { ProjectMember } from "../models/ProjectMember";
 import { AppError } from "../middlewares/errorHandler";
 import { CacheKeys, CacheTTL } from "../utils/cacheKeys";
 import { cache } from "../utils/cache";
+import { Project } from "../models/Project";
+import { attachmentKey, deleteFromS3, getPresignedUrl, uploadToS3 } from "../utils/s3Helper";
 
 // -- List tasks --
 export const getProjectTasks = async (
@@ -434,7 +436,48 @@ export const deleteComment = async (commentId: string, userId: string) => {
     await cache.del(CacheKeys.task(comment.taskId), CacheKeys.taskComments(comment.taskId));
 };
 
-// --- Attachments (placeholder — S3 wired in Phase 5)
+// -- Attachments
+export const createAttachment = async (taskId: string, userId: string, file: Express.Multer.File): Promise<Attachment> => {
+    const task = await Task.findByPk(taskId, {
+        attributes: ["id", "projectId"],
+    });
+    if (!task) {
+        throw new AppError("Task not found", 404);
+    }
+
+    // Get orgId from the project, needed for the S3 key structure
+    const project = await Project.findByPk(task.projectId, {
+        attributes: ["orgId"],
+    });
+    if (!project) {
+        throw new AppError("Project not found", 404);
+    }
+
+    // Build S3 key and upload
+    const key = attachmentKey(project.orgId, taskId, file.originalname);
+    await uploadToS3({
+        key,
+        buffer: file.buffer,
+        mimeType: file.mimetype,
+    });
+
+    // Store metadata in DB, never store the raw URL.
+    const attachment = await Attachment.create({
+        taskId,
+        userId,
+        filename: file.originalname,
+        s3Key: key,
+        size: file.size,
+    });
+
+    // Invalidate task and attachment cache
+    cache.del(CacheKeys.taskAttachments(taskId), CacheKeys.task(taskId));
+
+    return attachment.reload({
+        include: [{ model: User, attributes: ["id", "name"] }],
+    });
+};
+
 export const getTaskAttachments = async (taskId: string) => {
     const task = await Task.findByPk(taskId);
     if (!task) {
@@ -444,7 +487,14 @@ export const getTaskAttachments = async (taskId: string) => {
     const cacheKey = CacheKeys.taskAttachments(taskId);
     const cached = await cache.get(cacheKey);
     if (cached) {
-        return cached;
+        // Cached data has stale pre-signed URLs, we have to regenerate them
+        const attachments = cached as Array<Record<string, unknown>>;
+        return Promise.all(
+            attachments.map(async (a) => ({
+                ...a,
+                downloadUrl: await getPresignedUrl(a.s3Key as string),
+            })),
+        );
     }
 
     const attachments = await Attachment.findAll({
@@ -453,8 +503,18 @@ export const getTaskAttachments = async (taskId: string) => {
         order: [["createdAt", "DESC"]],
     });
 
-    await cache.set(cacheKey, attachments, CacheTTL.SHORT);
-    return attachments;
+    const result = attachments.map((a) => a.toJSON());
+
+    // Cache the raw data (without pre-signed URLs — they expire)
+    await cache.set(cacheKey, result, CacheTTL.SHORT);
+
+    // Return with fresh pre-signed URLs attached
+    return Promise.all(
+        result.map(async (a) => ({
+            ...a,
+            downloadUrl: await getPresignedUrl(a.s3Key as string),
+        })),
+    );
 };
 
 export const deleteAttachment = async (attachmentId: string, userId: string) => {
@@ -467,7 +527,10 @@ export const deleteAttachment = async (attachmentId: string, userId: string) => 
         throw new AppError("You can only delete your own attachments", 403);
     }
 
-    // S3 deletion wired in Phase 5 — for now just remove the DB record
+    // Delete from S3 first, if this fails we keep the DB record intact.
+    await deleteFromS3(attachment.s3Key);
+
+    // Then remove the DB record
     await attachment.destroy();
 
     await cache.del(CacheKeys.taskAttachments(attachment.taskId), CacheKeys.task(attachment.taskId));
