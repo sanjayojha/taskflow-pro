@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap");
+
 @theme {
     /* ── Primary Blue (sharp, deep, enterprise) */
     --color-brand-50: #eff4ff;
@@ -56,8 +58,6 @@
     /* ── Zero border radius — enterprise sharp corners */
     --radius: 0px;
 }
-
-@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap");
 
 *,
 *::before,
