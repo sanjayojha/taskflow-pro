@@ -1,20 +1,21 @@
-import { useAuth } from "@/hooks/useAuth";
+//import { useAuth } from "@/hooks/useAuth";
+
+import { Routes, Route } from "react-router";
+import LandingPage from "@/pages/LandingPage";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import { PublicRoute } from "@/routes/PublicRoute";
 
 function App() {
-    const { isLoading, isAuthenticated, user } = useAuth();
-
-    if (isLoading) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-surface-50">
-                <div className="h-8 w-8 animate-spin border-2 border-surface-200 border-t-brand-600" />
-            </div>
-        );
-    }
-
     return (
-        <div className="flex h-screen items-center justify-center bg-surface-50">
-            <p className="text-surface-700">{isAuthenticated ? `Logged in as ${user?.name}` : "Not authenticated"}</p>
-        </div>
+        <Routes>
+            <Route path="/" element={<LandingPage />} />
+
+            <Route element={<PublicRoute />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+            </Route>
+        </Routes>
     );
 }
 
