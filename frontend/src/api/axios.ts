@@ -4,7 +4,7 @@ import type { ApiSuccess } from "@/types";
 
 // -- Axios instance
 export const api = axios.create({
-    baseURL: "api/v1",
+    baseURL: "/api/v1",
     withCredentials: true, // sends the httpOnly refresh-token cookie automatically
     headers: {
         "Content-Type": "application/json",

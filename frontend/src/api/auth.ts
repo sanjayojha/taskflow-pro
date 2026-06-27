@@ -25,5 +25,5 @@ export const authApi = {
     me: () => api.get<ApiSuccess<User>>("/auth/me"),
     verifyEmail: (token: string) => api.get<ApiSuccess<null>>(`/auth/verify-email/${token}`),
     forgotPassword: (email: string) => api.post<ApiSuccess<null>>("/auth/forgot-password", { email }),
-    resetPassword: (token: string, password: string) => api.post<ApiSuccess<null>>(`/auth/reset-password/${token}`, { password }),
+    resetPassword: (token: string, password: string, confirmPassword: string) => api.post<ApiSuccess<null>>(`/auth/reset-password/${token}`, { password, confirmPassword }),
 };
