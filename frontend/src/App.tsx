@@ -8,6 +8,10 @@ import { PublicRoute } from "@/routes/PublicRoute";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
+import { ProtectedRoute } from "@/routes/ProtectedRoute";
+import { OrgProvider } from "@/context/OrgContext";
+import { AppShell } from "@/components/layout/AppShell";
+import DashboardPage from "@/pages/DashboardPage";
 
 function App() {
     return (
@@ -20,6 +24,19 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            </Route>
+
+            <Route element={<ProtectedRoute />}>
+                <Route
+                    path="/app"
+                    element={
+                        <OrgProvider>
+                            <AppShell />
+                        </OrgProvider>
+                    }
+                >
+                    <Route path="dashboard" element={<DashboardPage />} />
+                </Route>
             </Route>
         </Routes>
     );
