@@ -6,7 +6,7 @@ export function useOrgs() {
         queryKey: ["orgs"],
         queryFn: async () => {
             const { data } = await orgsApi.list();
-            return data.data;
+            return data.data.orgs;
         },
     });
 }

@@ -38,7 +38,7 @@ export function Navbar() {
                 </button>
                 <div ref={containerRef} className="relative">
                     <button onClick={() => setIsOpen((prev) => !prev)} className="flex items-center gap-2">
-                        {/* <Avatar name={user.name} avatarUrl={user.avatarUrl} size="sm" /> */}
+                        <Avatar name={user.name} avatarUrl={user.avatarUrl} size="sm" />
                         <ChevronDown className="h-3.5 w-3.5 text-surface-400" />
                     </button>
                     {isOpen && (

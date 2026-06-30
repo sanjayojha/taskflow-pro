@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setAccessToken(data.data.accessToken);
                 const meResponse = await authApi.me();
                 if (isMounted) {
-                    setUser(meResponse.data.data);
+                    setUser(meResponse.data.data.user);
                 }
             } catch {
                 // No valid refresh cookie, user is simply logged out. Not an error.
