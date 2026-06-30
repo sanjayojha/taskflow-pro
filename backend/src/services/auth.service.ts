@@ -116,7 +116,7 @@ export const register = async (input: RegisterInput): Promise<{ message: string 
 export const login = async (input: LoginInput): Promise<AuthResult> => {
     const user = await User.findOne({ where: { email: input.email } });
 
-    if (!user || !comparePassword(input.password, user.passwordHash)) {
+    if (!user || !(await comparePassword(input.password, user.passwordHash))) {
         throw new AppError("Invalid email or password", 401);
     }
 
