@@ -102,7 +102,7 @@ export const getProjectTasks = async (
 
     const taskWithCounts = rows.map((task) => ({
         ...task.toJSON(),
-        commentCount: parseInt(commentCounts.find((c) => (c.taskId = task.id))?.count || "0"),
+        commentCount: parseInt(commentCounts.find((c) => c.taskId === task.id)?.count || "0"),
         attachmentCount: parseInt(attachmentCounts.find((a) => a.taskId === task.id)?.count || "0"),
     }));
 

@@ -59,12 +59,12 @@ export interface Project {
     deadline?: string;
     taskSummary: {
         total: number;
-        backlog: number;
-        inProgress: number;
-        review: number;
         done: number;
+        backlog?: number;
+        inProgress?: number;
+        review?: number;
     };
-    myRole: "manager" | "member" | "viewer";
+    myRole: "manager" | "member" | "viewer" | null;
 }
 
 export interface ProjectMember {
