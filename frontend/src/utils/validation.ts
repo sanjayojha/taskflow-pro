@@ -24,7 +24,13 @@ export const resetPasswordSchema = z
         path: ["confirmPassword"],
     });
 
+export const createTaskSchema = z.object({
+    title: z.string().min(1, { error: "Task title is required" }).max(200, { error: "Title is too long" }),
+});
+
 export type LoginFormValues = z.infer<typeof loginSchema>;
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 export type ForgotPasswordFormValues = z.infer<typeof forgetPasswordSchema>;
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+export type CreateTaskFormValues = z.infer<typeof createTaskSchema>;
